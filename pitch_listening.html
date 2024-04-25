@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pitch Recognition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.30/Tone.js"></script>
+    <link rel="stylesheet" type="text/css" href="exercise_styles.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+<body>
+<h1>Pitch Recognition</h1>
+<div id="back">
+    <a href="index.html">Back</a>
+
+
+
+<div id="controls">
+    <button id="play">Play Note</button>
+    <button id="new">Skip Note</button>
+</div>
+
+<div id="scores">
+    <p>Notes Correct: <span id="correct">0</span> / <span id="total">0</span></p>
+    <p>Percentage: <span id="percentage">0</span>%</p>
+    <div id="message"></div>
+</div>
+
+<div id="options"></div>
+
+<script>
+
+    //Only works for me with inline script
+    const synth = new Tone.Synth().toDestination();
+    const pitches = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4'];
+    let currentPitch = '';
+    let notes_total = 0;
+    let notes_correct = 0;
+
+
+    // Create options for each pitch
+    const optionsDiv = document.getElementById('options');
+    pitches.forEach(pitch => {
+        const button = document.createElement('button');
+        button.classList.add('pitch');
+        button.textContent = pitch;
+        button.addEventListener('click', () => checkPitch(pitch));
+        optionsDiv.appendChild(button);
+    });
+    document.getElementById('play').addEventListener('click', () => {
+        if (!currentPitch) {
+            currentPitch = pitches[Math.floor(Math.random() * pitches.length)];
+        }
+        synth.triggerAttackRelease(currentPitch, '0.5');
+    });
+
+    document.getElementById('new').addEventListener('click', () => {
+        currentPitch = pitches[Math.floor(Math.random() * pitches.length)];
+        synth.triggerAttackRelease(currentPitch, '8n');
+    });
+
+    function checkPitch(pitch) {
+        const messageDiv = document.getElementById('message');
+        if (pitch === currentPitch) {
+            messageDiv.textContent = 'Correct!';
+            randomPitch();
+            notes_correct++;
+        } else {
+            messageDiv.textContent = `Incorrect (${currentPitch}.)`;
+            randomPitch();
+        }
+        notes_total++;
+        updateStats();
+    }
+
+    function updateStats() {
+        document.getElementById('correct').textContent = notes_correct;
+        document.getElementById('total').textContent = notes_total;
+        document.getElementById('percentage').textContent = Math.round((notes_correct / notes_total) * 100);
+    }
+    function randomPitch() {
+        currentPitch = pitches[Math.floor(Math.random() * pitches.length)];
+        synth.triggerAttackRelease(currentPitch, '.5');
+    }
+</script>
+</div>
+
+</body>
+</html>

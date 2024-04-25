@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interval Recognition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.30/Tone.js"></script>
+    <link rel="stylesheet" type="text/css" href="interval_styles.css">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+</head>
+
+<h1>Interval Recognition</h1>
+<div id="back">
+    <a href="index.html">Back</a>
+
+
+
+
+    <div id="controls">
+        <button id="play">Play Interval</button>
+        <button id="new">Skip Interval</button>
+    </div>
+
+
+
+
+    <div id="scores">
+        <p>Intervals Correct: <span id="correct">0</span> / <span id="total">0</span></p>
+        <p>Percentage: <span id="percentage">0</span>%</p>
+        <div id="message"></div>
+    </div>
+
+
+    <div id="options"></div>
+    <div class="interval"></div>
+    <div id="misc_buttons">
+        <button id="hint_toggle">Show hint (see notes): false</button>
+        <p id="hint"></p>
+    </div>
+    <script>
+
+        //Only works  with inline script
+
+        const synth = new Tone.Synth().toDestination();
+        const intervals = ['P1', 'm2', 'M2', 'm3', 'M3', 'P4', 'A4', 'P5', 'm6', 'M6', 'm7', 'M7', 'P8'];
+        //2 octave range
+        const pitches = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5', 'F5', 'G5', 'A5', 'B5'];
+        let currentInterval = '';
+        let lower_note = '';
+        let upper_note = '';
+        let intervals_total = 0;
+        let intervals_correct = 0;
+        let show_hint = false;
+        const optionsDiv = document.getElementById('options');
+
+
+
+
+        intervals.forEach(interval => {
+            const button = document.createElement('button');
+            button.classList.add('interval');
+            button.textContent = interval;
+            button.addEventListener('click', () => checkInterval(interval));
+            optionsDiv.appendChild(button);
+        });
+
+        document.getElementById('play').addEventListener('click', async () => {
+            playInterval();
+        });
+        document.getElementById('new').addEventListener('click', async () =>{
+            determineInterval();
+        });
+
+        document.getElementById('hint_toggle').addEventListener('click', () => {
+            show_hint = !show_hint;
+            document.getElementById('hint_toggle').textContent = `Show hint (see notes): ${show_hint}`;
+        });
+
+        function playInterval() {
+            if (!currentInterval) {
+                currentInterval = determineInterval();
+            }
+
+            synth.triggerAttackRelease(lower_note, '0.5');
+            setTimeout(() => {
+                synth.triggerAttackRelease(upper_note, '0.5');
+            }, 500);
+        }
+
+        function checkInterval(interval) {
+            const messageDiv = document.getElementById('message');
+            if(!currentInterval) {
+                console.log('Invalid input')
+                return;
+            }
+
+
+            if (interval === currentInterval) {
+                messageDiv.textContent = 'Correct!';
+                intervals_correct++;
+            } else {
+                messageDiv.textContent = `Incorrect (${lower_note} to ${upper_note}, ${currentInterval}.)`;
+            }
+
+            currentInterval = determineInterval();
+
+            intervals_total++;
+            updateStats();
+            playInterval();
+            if(show_hint){
+                document.getElementById('hint').textContent = `Hint: ${lower_note} to ${upper_note}`;
+            } else {
+                document.getElementById('hint').textContent = '';
+            }
+        }
+        function updateStats() {
+            document.getElementById('correct').textContent = intervals_correct;
+            document.getElementById('total').textContent = intervals_total;
+            document.getElementById('percentage').textContent = Math.round((intervals_correct / intervals_total) * 100);
+        }
+
+
+        function ensure_pitch_sorted(){
+            let lower_index = pitches.indexOf(lower_note);
+            let upper_index = pitches.indexOf(upper_note);
+
+            if (upper_index < lower_index) {
+                let temp = lower_index;
+                lower_index = upper_index;
+                upper_index = temp;
+            }
+            lower_note = pitches[lower_index];
+            upper_note = pitches[upper_index];
+        }
+
+
+        function determineInterval() {
+            let lower_index = Math.floor(Math.random() * 7); // Limiting to first 7 notes
+            let upper_index = lower_index + Math.floor(Math.random() * 7); // Randomize upper within a 7-note range
+            if (upper_index >= pitches.length) {
+                upper_index = pitches.length - 1; // Ensure upper index doesn't exceed the array length
+            }
+            lower_note = pitches[lower_index];
+            upper_note = pitches[upper_index];
+            ensure_pitch_sorted();
+
+            currentInterval = calculateInterval(lower_note, upper_note);
+            if (show_hint) {
+                document.getElementById('hint').textContent = `Hint: ${lower_note} to ${upper_note}`;
+            } else {
+                document.getElementById('hint').textContent = '';
+            }
+
+            return currentInterval;
+        }
+
+
+        function calculateInterval(note1, note2) {
+            // Define semitone intervals for each note
+            const semitoneIntervals = {
+                'C': 0,
+                'C#': 1, 'Db': 1,
+                'D': 2,
+                'D#': 3, 'Eb': 3,
+                'E': 4,
+                'F': 5,
+                'F#': 6, 'Gb': 6,
+                'G': 7,
+                'G#': 8, 'Ab': 8,
+                'A': 9,
+                'A#': 10, 'Bb': 10,
+                'B': 11
+            };
+
+            // Define interval names and semitone differences
+            const intervals = ['P1', 'm2', 'M2', 'm3', 'M3', 'P4', 'A4', 'P5', 'm6', 'M6', 'm7', 'M7', 'P8'];
+            const semitoneDifferences = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+            // Extract note name and octave from the note string
+            const regex = /([A-Ga-g])(#|b)?(\d+)/;
+            const [, noteName1, accidental1, octave1] = note1.match(regex);
+            const [, noteName2, accidental2, octave2] = note2.match(regex);
+
+            // Calculate semitone difference
+            const semitoneDifference =
+                (parseInt(octave2) - parseInt(octave1)) * 12 +
+                semitoneIntervals[noteName2 + (accidental2 || '')] -
+                semitoneIntervals[noteName1 + (accidental1 || '')];
+
+            // Find the corresponding interval name
+            const intervalName = intervals[semitoneDifferences.indexOf(semitoneDifference)];
+
+            return intervalName;
+        }
+
+    </script>
+</div>
+</body>
+</html>
